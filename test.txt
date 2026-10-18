@@ -1,0 +1,4 @@
+main() {
+    resultado = calcular(1, 2);
+    arr[0] = 5;
+}
