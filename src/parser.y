@@ -33,7 +33,7 @@
 %token KW_BOOL KW_BYTE KW_INT KW_UINT KW_LONG KW_ULONG KW_CHAR KW_STRING
 %token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET SEMICOLON COMMA
 
-%type <node> source sourceItem funcDef funcSignature argList argDef statement statementList block expr typeRef exprList
+%type <node> source sourceItem funcDef funcSignature argList argDef statement statementList block expr typeRef exprList optVarAssign varDeclTail
 
 /* Precedencia de operadores (de menor a mayor) */
 %right OP_ASSIGN
@@ -119,6 +119,27 @@ argDef:
     }
     ;
 
+    optVarAssign:
+    /* vacío */ { $$ = NULL; }
+    | OP_ASSIGN expr { $$ = $2; }
+    ;
+
+varDeclTail:
+    /* vacío */ { $$ = NULL; }
+    | COMMA IDENTIFIER optVarAssign {
+        $$ = create_node(NODE_IDENTIFIER, $2);
+        if ($3 != NULL) add_child($$, $3);
+        free($2);
+    }
+    | varDeclTail COMMA IDENTIFIER optVarAssign {
+        ASTNode* decl = create_node(NODE_IDENTIFIER, $3);
+        if ($4 != NULL) add_child(decl, $4);
+        add_child($1, decl);
+        $$ = $1;
+        free($3);
+    }
+    ;
+
 exprList:
     /* vacío */ { $$ = NULL; }
     | expr { $$ = $1; }
@@ -169,6 +190,15 @@ statement:
     }
     | BREAK SEMICOLON { $$ = create_node(NODE_BREAK, NULL); }
     | expr SEMICOLON { $$ = $1; }
+    | typeRef IDENTIFIER optVarAssign varDeclTail SEMICOLON {
+        $$ = create_node(NODE_VAR_DECL, $2);
+        if ($1 != NULL) add_child($$, $1);
+        ASTNode* first = create_node(NODE_IDENTIFIER, $2);
+        if ($3 != NULL) add_child(first, $3);
+        add_child($$, first);
+        if ($4 != NULL) add_child($$, $4);
+        free($2);
+    }
     ;
 
 expr:

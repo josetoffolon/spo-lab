@@ -1,0 +1,8 @@
+literales() {
+    a = 0xFF;
+    b = 0b1010;
+    c = 123;
+    d = "hola";
+    e = 'x';
+    f = true;
+}

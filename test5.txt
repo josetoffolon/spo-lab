@@ -1,0 +1,6 @@
+expresiones() {
+    x = a + b * c - d / e % f;
+    y = (a + b) * (c - d);
+    z = a > b && c < d || e == f;
+    w = -a + !b;
+}

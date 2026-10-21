@@ -1,0 +1,6 @@
+vars() {
+    int x;
+    int y = 5;
+    string s = "hola";
+    int a, b, c = 10;
+}

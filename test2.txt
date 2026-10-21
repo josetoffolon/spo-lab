@@ -1,0 +1,6 @@
+loop_test() {
+    do {
+        i = i + 1;
+    } while (i < 10);
+    break;
+}
