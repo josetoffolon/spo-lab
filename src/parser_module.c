@@ -103,6 +103,42 @@ ASTNode* parse_text(const char* text, ErrorList* errors) {
 
 // --- Exportación a DOT (Graphviz) ---
 
+static void dot_print_escaped(FILE* out, const char* text) {
+    if (out == NULL || text == NULL) {
+        return;
+    }
+
+    for (const unsigned char* p = (const unsigned char*)text;
+         *p != '\0'; p++) {
+
+        switch (*p) {
+            case '"':
+                fputs("\\\"", out);
+                break;
+
+            case '\\':
+                fputs("\\\\", out);
+                break;
+
+            case '\n':
+                fputs("\\n", out);
+                break;
+
+            case '\r':
+                fputs("\\r", out);
+                break;
+
+            case '\t':
+                fputs("\\t", out);
+                break;
+
+            default:
+                fputc(*p, out);
+                break;
+        }
+    }
+}
+
 static void dot_print_node(ASTNode* node, FILE* out, int* counter) {
     if (node == NULL) return;
 
@@ -112,19 +148,22 @@ static void dot_print_node(ASTNode* node, FILE* out, int* counter) {
     const char* label = node->value ? node->value : "?";
     switch (node->type) {
         case NODE_PROGRAM:    fprintf(out, "  n%d [label=\"PROGRAM\"];\n", my_id); break;
-        case NODE_FUNC_DEF:   fprintf(out, "  n%d [label=\"FUNC: %s\"];\n", my_id, label); break;
-        case NODE_VAR_DECL:   fprintf(out, "  n%d [label=\"VAR: %s\"];\n", my_id, label); break;
+        case NODE_FUNC_DEF:   fprintf(out, "  n%d [label=\"FUNC: ", my_id); dot_print_escaped(out, label); fputs("\"];\n", out); break;
+        case NODE_VAR_DECL:   fprintf(out, "  n%d [label=\"VAR: ", my_id); dot_print_escaped(out, label); fputs("\"];\n", out); break;
         case NODE_IF:         fprintf(out, "  n%d [label=\"IF\"];\n", my_id); break;
         case NODE_WHILE:      fprintf(out, "  n%d [label=\"WHILE\"];\n", my_id); break;
         case NODE_DO_WHILE:   fprintf(out, "  n%d [label=\"DO-WHILE\"];\n", my_id); break;
         case NODE_BLOCK:      fprintf(out, "  n%d [label=\"BLOCK\"];\n", my_id); break;
         case NODE_BREAK:      fprintf(out, "  n%d [label=\"BREAK\"];\n", my_id); break;
-        case NODE_BINARY_OP:  fprintf(out, "  n%d [label=\"OP: %s\"];\n", my_id, label); break;
-        case NODE_UNARY_OP:   fprintf(out, "  n%d [label=\"UNOP: %s\"];\n", my_id, label); break;
+        case NODE_BINARY_OP:  fprintf(out, "  n%d [label=\"OP: ", my_id); dot_print_escaped(out, label); fputs("\"];\n", out); break;
+        case NODE_UNARY_OP:   fprintf(out, "  n%d [label=\"UNOP: ", my_id);dot_print_escaped(out, label); fputs("\"];\n", out); break;
         case NODE_CALL:       fprintf(out, "  n%d [label=\"CALL\"];\n", my_id); break;
         case NODE_INDEXER:    fprintf(out, "  n%d [label=\"INDEX\"];\n", my_id); break;
-        case NODE_IDENTIFIER: fprintf(out, "  n%d [label=\"ID: %s\"];\n", my_id, label); break;
-        case NODE_LITERAL:    fprintf(out, "  n%d [label=\"LIT: %s\"];\n", my_id, label); break;
+        case NODE_IDENTIFIER: fprintf(out, "  n%d [label=\"ID: ", my_id); dot_print_escaped(out, label); fputs("\"];\n", out); break;
+        case NODE_LITERAL:    fprintf(out, "  n%d [label=\"LIT: ", my_id); dot_print_escaped(out, label); fputs("\"];\n", out); break;
+        case NODE_ARG_LIST:   fprintf(out, "  n%d [label=\"ARG_LIST\"];\n", my_id); break;
+        case NODE_EXPR_LIST:  fprintf(out, "  n%d [label=\"EXPR_LIST\"];\n", my_id); break;
+        case NODE_DECL_LIST:  fprintf(out, "  n%d [label=\"DECL_LIST\"];\n", my_id); break;
         default:              fprintf(out, "  n%d [label=\"?\"];\n", my_id); break;
     }
 

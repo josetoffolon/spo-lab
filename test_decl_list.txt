@@ -1,0 +1,4 @@
+int main() {
+    int a, b, c = 10;
+    string nombre = "Jose", apellido = "Toffolon";
+}

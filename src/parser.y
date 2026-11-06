@@ -99,8 +99,13 @@ funcSignature:
     ;
 
 argList:
-    /* vacío */ { $$ = NULL; }
-    | argDef { $$ = $1; }
+    /* vacío */ {
+        $$ = create_node(NODE_ARG_LIST, NULL);
+    }
+    | argDef {
+        $$ = create_node(NODE_ARG_LIST, NULL);
+        add_child($$, $1);
+    }
     | argList COMMA argDef {
         $$ = $1;
         add_child($$, $3);
@@ -125,24 +130,31 @@ argDef:
     ;
 
 varDeclTail:
-    /* vacío */ { $$ = NULL; }
-    | COMMA IDENTIFIER optVarAssign {
-        $$ = create_node(NODE_IDENTIFIER, $2);
-        if ($3 != NULL) add_child($$, $3);
-        free($2);
+    /* vacío */ {
+        $$ = create_node(NODE_DECL_LIST, NULL);
     }
     | varDeclTail COMMA IDENTIFIER optVarAssign {
         ASTNode* decl = create_node(NODE_IDENTIFIER, $3);
-        if ($4 != NULL) add_child(decl, $4);
+
+        if ($4 != NULL) {
+            add_child(decl, $4);
+        }
+
         add_child($1, decl);
         $$ = $1;
+
         free($3);
     }
     ;
 
 exprList:
-    /* vacío */ { $$ = NULL; }
-    | expr { $$ = $1; }
+    /* vacío */ {
+        $$ = create_node(NODE_EXPR_LIST, NULL);
+    }
+    | expr {
+        $$ = create_node(NODE_EXPR_LIST, NULL);
+        add_child($$, $1);
+    }
     | exprList COMMA expr {
         $$ = $1;
         add_child($$, $3);
@@ -191,13 +203,39 @@ statement:
     | BREAK SEMICOLON { $$ = create_node(NODE_BREAK, NULL); }
     | expr SEMICOLON { $$ = $1; }
     | typeRef IDENTIFIER optVarAssign varDeclTail SEMICOLON {
-        $$ = create_node(NODE_VAR_DECL, $2);
-        if ($1 != NULL) add_child($$, $1);
-        ASTNode* first = create_node(NODE_IDENTIFIER, $2);
-        if ($3 != NULL) add_child(first, $3);
-        add_child($$, first);
-        if ($4 != NULL) add_child($$, $4);
-        free($2);
+    $$ = create_node(NODE_VAR_DECL, NULL);
+
+    // Tipo declarado
+    add_child($$, $1);
+
+    // Primera variable de la lista
+    ASTNode* first = create_node(NODE_IDENTIFIER, $2);
+
+    if ($3 != NULL) {
+        add_child(first, $3);
+    }
+
+    // Insertar primera variable al inicio de la lista
+    ASTNode* declarations = create_node(NODE_DECL_LIST, NULL);
+    add_child(declarations, first);
+
+    // Incorporar las variables adicionales
+    if ($4 != NULL) {
+        for (int i = 0; i < $4->child_count; i++) {
+            add_child(declarations, $4->children[i]);
+        }
+
+        // Transferimos la propiedad de los hijos.
+        // Evitamos que se liberen dos veces.
+        free($4->children);
+        $4->children = NULL;
+        $4->child_count = 0;
+        free_ast($4);
+    }
+
+    add_child($$, declarations);
+
+    free($2);
     }
     ;
 

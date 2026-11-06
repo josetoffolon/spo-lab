@@ -78,9 +78,12 @@ int main(int argc, char** argv) {
         free_ast(ast);
     }
 
-    // 6. Limpieza total (sin fugas)
+    // 6. Determinar el estado de ejecución antes de liberar memoria
+    int exit_code = (ast != NULL && errors->count == 0) ? 0 : 2;
+
+    // 7. Liberar los recursos utilizados
     error_list_free(errors);
     free(source);
 
-    return (errors->count == 0) ? 0 : 2;
+    return exit_code;
 }

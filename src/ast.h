@@ -4,6 +4,7 @@
 #include <stdlib.h>
 
 // Tipos de nodos del AST (Variante 1)
+
 typedef enum {
     NODE_PROGRAM,
     NODE_FUNC_DEF,
@@ -18,8 +19,12 @@ typedef enum {
     NODE_CALL,
     NODE_INDEXER,
     NODE_IDENTIFIER,
-    NODE_LITERAL
+    NODE_LITERAL,
+    NODE_ARG_LIST,
+    NODE_EXPR_LIST,
+    NODE_DECL_LIST
 } NodeType;
+
 
 typedef struct ASTNode {
     NodeType type;

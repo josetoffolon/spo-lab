@@ -1,0 +1,4 @@
+int main() {
+    resultado = sumar(10, 20, 30);
+    otro = calcular(a + b, c * d);
+}
