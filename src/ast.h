@@ -38,6 +38,26 @@ typedef struct ASTNode {
 
 int move_children(ASTNode* destination, ASTNode* source);
 
+/*
+ * Construye una declaración de variables.
+ *
+ * Éxito:
+ *   Devuelve NODE_VAR_DECL y adquiere type,
+ *   initializer y additional_declarations.
+ *
+ * Fallo:
+ *   Devuelve NULL y deja intactos esos argumentos.
+ *
+ * first_name es prestado: la función lo copia.
+ */
+ASTNode* create_var_declaration(
+    ASTNode* type,
+    const char* first_name,
+    ASTNode* initializer,
+    ASTNode* additional_declarations
+);
+
+
 // Funciones para crear nodos (evitan fugas de memoria)
 ASTNode* create_node(NodeType type, char* value);
 ASTNode* create_binary_node(NodeType type, char* op, ASTNode* left, ASTNode* right);

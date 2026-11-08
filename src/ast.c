@@ -129,3 +129,116 @@ int move_children(ASTNode* destination, ASTNode* source) {
 
     return 1;
 }
+
+ASTNode* create_var_declaration(
+    ASTNode* type,
+    const char* first_name,
+    ASTNode* initializer,
+    ASTNode* additional_declarations
+) {
+    if (type == NULL || first_name == NULL) {
+        return NULL;
+    }
+
+    size_t extra = 0;
+
+    if (additional_declarations != NULL) {
+        if (additional_declarations->type != NODE_DECL_LIST ||
+            additional_declarations->child_count < 0) {
+            return NULL;
+        }
+
+        extra = (size_t)additional_declarations->child_count;
+
+        if (extra > 0 &&
+            additional_declarations->children == NULL) {
+            return NULL;
+        }
+    }
+
+    if (extra >= (size_t)INT_MAX ||
+        extra > SIZE_MAX / sizeof(ASTNode*) - 1) {
+        return NULL;
+    }
+
+    // Crear nodos nuevos sin adquirir todavía
+    // la propiedad de los argumentos recibidos.
+    ASTNode* declaration = create_node(
+        NODE_VAR_DECL, NULL
+    );
+
+    ASTNode* first = create_node(
+        NODE_IDENTIFIER, (char*)first_name
+    );
+
+    ASTNode* declarations = create_node(
+        NODE_DECL_LIST, NULL
+    );
+
+    if (!declaration || !first || !declarations) {
+        goto fail;
+    }
+
+    // Reservar toda la memoria antes de transferir
+    // cualquier nodo existente.
+    declaration->children = malloc(
+        2 * sizeof(ASTNode*)
+    );
+
+    declarations->children = malloc(
+        (extra + 1) * sizeof(ASTNode*)
+    );
+
+    if (initializer != NULL) {
+        first->children = malloc(sizeof(ASTNode*));
+    }
+
+    if (!declaration->children ||
+        !declarations->children ||
+        (initializer != NULL && !first->children)) {
+        goto fail;
+    }
+
+    // A partir de aquí no se realizan asignaciones.
+    // Comienza la transferencia de propiedad.
+
+    if (initializer != NULL) {
+        first->children[0] = initializer;
+        first->child_count = 1;
+    }
+
+    declarations->children[0] = first;
+
+    if (extra > 0) {
+        memcpy(
+            declarations->children + 1,
+            additional_declarations->children,
+            extra * sizeof(ASTNode*)
+        );
+    }
+
+    declarations->child_count = (int)(extra + 1);
+
+    declaration->children[0] = type;
+    declaration->children[1] = declarations;
+    declaration->child_count = 2;
+
+    // La lista temporal entrega sus hijos.
+    if (additional_declarations != NULL) {
+        free(additional_declarations->children);
+        additional_declarations->children = NULL;
+        additional_declarations->child_count = 0;
+        free_ast(additional_declarations);
+    }
+
+    return declaration;
+
+fail:
+    // Estos nodos todavía no poseen los argumentos.
+    // Sus contadores de hijos siguen en cero.
+    free_ast(declarations);
+    free_ast(first);
+    free_ast(declaration);
+
+    return NULL;
+}
