@@ -4,6 +4,7 @@
 #include <string.h>
 #include "ast.h"
 #include "parser_module.h"
+int yyget_lineno(void* scanner);
 %}
 
 %code requires {
@@ -39,6 +40,7 @@
 %token IF ELSE WHILE DO BREAK
 %token KW_BOOL KW_BYTE KW_INT KW_UINT KW_LONG KW_ULONG KW_CHAR KW_STRING
 %token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET SEMICOLON COMMA
+%token INVALID
 
 %type <node> source sourceItem funcDef funcSignature argList argDef statement statementList block expr typeRef exprList optVarAssign varDeclTail
 %type <dimension_count> arrayCommas
@@ -301,7 +303,7 @@ expr:
     | expr OP_MOD expr    { $$ = create_binary_node(NODE_BINARY_OP, "%",  $1, $3); free($2); }
     | expr OP_ASSIGN expr { $$ = create_binary_node(NODE_BINARY_OP, "=", $1, $3); free($2); }
     | OP_NOT expr         { $$ = create_binary_node(NODE_UNARY_OP, "!", $2, NULL); free($1); }
-    | OP_MINUS expr       { $$ = create_binary_node(NODE_UNARY_OP, "-", $2, NULL); free($1); }
+    | expr OP_MINUS expr  { $$ = create_binary_node(NODE_BINARY_OP, "-", $1, $3); free($2); }
     | LPAREN expr RPAREN  { $$ = $2; }
     | expr LPAREN exprList RPAREN {
         $$ = create_node(NODE_CALL, NULL);
@@ -373,12 +375,26 @@ typeRef:
 
 %%
 
-void yyerror(void* scanner, ParseContext* ctx, const char* s) {
-    (void)scanner;
-    if (ctx != NULL && ctx->errors != NULL) {
-        error_list_add(ctx->errors, 0, s);
+void yyerror(
+    void* scanner,
+    ParseContext* ctx,
+    const char* message
+) {
+    if (ctx == NULL) {
+        return;
     }
-    if (ctx != NULL) {
-        ctx->has_error = 1;
+
+    int line = scanner != NULL
+        ? yyget_lineno(scanner)
+        : 0;
+
+    if (ctx->errors != NULL) {
+        error_list_add(
+            ctx->errors,
+            line,
+            message
+        );
     }
+
+    ctx->has_error = 1;
 }

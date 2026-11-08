@@ -39,7 +39,7 @@ typedef struct ASTNode {
 // Funciones para crear nodos (evitan fugas de memoria)
 ASTNode* create_node(NodeType type, char* value);
 ASTNode* create_binary_node(NodeType type, char* op, ASTNode* left, ASTNode* right);
-void add_child(ASTNode* parent, ASTNode* child);
+int add_child(ASTNode* parent, ASTNode* child);
 void free_ast(ASTNode* node);
 
 #endif

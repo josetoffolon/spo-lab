@@ -4,18 +4,26 @@
 
 // Crea un nodo genérico. Duplica el valor para que el nodo sea dueño de su memoria.
 ASTNode* create_node(NodeType type, char* value) {
-    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    ASTNode* node = calloc(1, sizeof(ASTNode));
+
     if (node == NULL) {
-        return NULL; // Fallo al asignar memoria
+        return NULL;
     }
+
     node->type = type;
-    node->value = (value != NULL) ? strdup(value) : NULL;
-    node->left = NULL;
-    node->right = NULL;
-    node->children = NULL;
-    node->child_count = 0;
+
+    if (value != NULL) {
+        node->value = strdup(value);
+
+        if (node->value == NULL) {
+            free(node);
+            return NULL;
+        }
+    }
+
     return node;
 }
+
 
 // Crea un nodo binario (ej. una operación a + b)
 ASTNode* create_binary_node(NodeType type, char* op, ASTNode* left, ASTNode* right) {
@@ -27,20 +35,27 @@ ASTNode* create_binary_node(NodeType type, char* op, ASTNode* left, ASTNode* rig
 }
 
 // Añade un hijo a un nodo padre (realloc dinámico, no hay tamaño máximo)
-void add_child(ASTNode* parent, ASTNode* child) {
-    if (parent == NULL || child == NULL) return;
+int add_child(ASTNode* parent, ASTNode* child) {
+    if (parent == NULL || child == NULL) {
+        return 0;
+    }
 
-    // Reserva espacio para un puntero más
-    ASTNode** new_children = (ASTNode**)realloc(
+    ASTNode** new_children = realloc(
         parent->children,
         sizeof(ASTNode*) * (parent->child_count + 1)
     );
-    if (new_children == NULL) return; // Fallo de realloc, no perdemos el original
+
+    if (new_children == NULL) {
+        return 0;
+    }
 
     parent->children = new_children;
     parent->children[parent->child_count] = child;
     parent->child_count++;
+
+    return 1;
 }
+
 
 // Libera recursivamente todo el árbol (evita fugas de memoria)
 void free_ast(ASTNode* node) {

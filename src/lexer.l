@@ -76,6 +76,6 @@ ID       [a-zA-Z_][a-zA-Z0-9_]*
 ";"                 { return SEMICOLON; }
 ","                 { return COMMA; }
 
-.                   { /* Carácter no reconocido */ }
+.                   { return INVALID;}
 
 %%

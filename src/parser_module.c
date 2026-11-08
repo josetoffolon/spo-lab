@@ -13,6 +13,7 @@ int yylex_init(yyscan_t* scanner);
 int yylex_destroy(yyscan_t scanner);
 void* yy_scan_string(const char* str, yyscan_t scanner);
 void yy_delete_buffer(void* buffer, yyscan_t scanner);
+void yyset_lineno(int line_number, yyscan_t scanner);
 
 /* Funciones generadas por Bison */
 int yyparse(void* scanner, ParseContext* ctx);
@@ -76,12 +77,21 @@ ASTNode* parse_text(const char* text, ErrorList* errors) {
     }
 
     // 3. Asociamos la cadena de texto al scanner
+    
     void* buffer = yy_scan_string(text, scanner);
+
     if (buffer == NULL) {
         yylex_destroy(scanner);
-        error_list_add(errors, 0, "No se pudo crear el buffer de análisis");
+        error_list_add(
+            errors,
+            0,
+            "No se pudo crear el buffer de análisis"
+        );
         return NULL;
     }
+
+    // La primera línea del código fuente es la línea 1
+    yyset_lineno(1, scanner);
 
     // 4. Ejecutamos el parser (le pasamos el contexto y el scanner)
     int result = yyparse(scanner, &ctx);
