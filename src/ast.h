@@ -22,7 +22,8 @@ typedef enum {
     NODE_LITERAL,
     NODE_ARG_LIST,
     NODE_EXPR_LIST,
-    NODE_DECL_LIST
+    NODE_DECL_LIST,
+    NODE_ARRAY_TYPE
 } NodeType;
 
 

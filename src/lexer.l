@@ -60,6 +60,12 @@ ID       [a-zA-Z_][a-zA-Z0-9_]*
 "<"                 { yylval->str = strdup(yytext); return OP_LT; }
 ">"                 { yylval->str = strdup(yytext); return OP_GT; }
 "!"                 { yylval->str = strdup(yytext); return OP_NOT; }
+"<<"                { yylval->str = strdup(yytext); return OP_SHL; }
+">>"                { yylval->str = strdup(yytext); return OP_SHR; }
+"&"                 { yylval->str = strdup(yytext); return OP_BIT_AND; }
+"|"                 { yylval->str = strdup(yytext); return OP_BIT_OR; }
+"^"                 { yylval->str = strdup(yytext); return OP_BIT_XOR; }
+"~"                 { yylval->str = strdup(yytext); return OP_BIT_NOT; }
 
 "("                 { return LPAREN; }
 ")"                 { return RPAREN; }

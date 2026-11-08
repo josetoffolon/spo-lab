@@ -1,0 +1,12 @@
+int main() {
+    int[] numeros;
+    string[] nombres;
+    int[,] matriz;
+    int[,,] cubo;
+    int[][] grupos;
+    Persona[] pacientes;
+
+    numeros[0] = 100;
+    matriz[0, 1] = 200;
+    grupos[0][1] = 50;
+}

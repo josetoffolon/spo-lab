@@ -11,14 +11,19 @@
     #include "parser_module.h"
 }
 
-%define api.pure full
+%glr-parser
+%define api.pure true
+
 %lex-param   { void* scanner }
 %parse-param { void* scanner }
 %parse-param { ParseContext* ctx }
 
+
+
 %union {
     char* str;
     ASTNode* node;
+    int dimension_count;
 }
 
 /* Este bloque se inserta en parser.tab.h DESPUÉS de definir YYSTYPE */
@@ -29,24 +34,49 @@
 
 %token <str> IDENTIFIER LITERAL_STR LITERAL_CHAR LITERAL_HEX LITERAL_BITS LITERAL_DEC LITERAL_BOOL
 %token <str> OP_EQ OP_NEQ OP_LE OP_GE OP_AND OP_OR OP_PLUS OP_MINUS OP_MUL OP_DIV OP_MOD OP_ASSIGN OP_LT OP_GT OP_NOT
+%token <str> OP_BIT_AND OP_BIT_OR OP_BIT_XOR OP_BIT_NOT
+%token <str> OP_SHL OP_SHR
 %token IF ELSE WHILE DO BREAK
 %token KW_BOOL KW_BYTE KW_INT KW_UINT KW_LONG KW_ULONG KW_CHAR KW_STRING
 %token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET SEMICOLON COMMA
 
 %type <node> source sourceItem funcDef funcSignature argList argDef statement statementList block expr typeRef exprList optVarAssign varDeclTail
+%type <dimension_count> arrayCommas
 
-/* Precedencia de operadores (de menor a mayor) */
+
+/* Precedencia de menor a mayor */
+
+/* Asignación */
 %right OP_ASSIGN
+
+/* Operadores lógicos */
 %left OP_OR
 %left OP_AND
+
+/* Operadores bit a bit */
+%left OP_BIT_OR
+%left OP_BIT_XOR
+%left OP_BIT_AND
+
+/* Comparación por igualdad */
 %left OP_EQ OP_NEQ
+
+/* Comparación relacional */
 %left OP_LT OP_GT OP_LE OP_GE
+
+/* Desplazamientos */
+%left OP_SHL OP_SHR
+
+/* Operaciones aritméticas */
 %left OP_PLUS OP_MINUS
 %left OP_MUL OP_DIV OP_MOD
-%right OP_NOT
-/* Los postfijos () y [] tienen la precedencia MÁS ALTA
-   para que -f(x) se interprete como -(f(x)) y no (-f)(x) */
+
+/* Operadores unarios */
+%precedence OP_NOT UMINUS UBITNOT
+
+/* Operaciones postfijas */
 %left LPAREN LBRACKET
+
 
 /* Resolver el "dangling else" */
 %nonassoc IFX
@@ -124,7 +154,7 @@ argDef:
     }
     ;
 
-    optVarAssign:
+optVarAssign:
     /* vacío */ { $$ = NULL; }
     | OP_ASSIGN expr { $$ = $2; }
     ;
@@ -250,16 +280,22 @@ expr:
     | LITERAL_STR { $$ = create_node(NODE_LITERAL, $1); free($1); }
     | LITERAL_CHAR { $$ = create_node(NODE_LITERAL, $1); free($1); }
     | LITERAL_BOOL { $$ = create_node(NODE_LITERAL, $1); free($1); }
-    | expr OP_EQ expr     { $$ = create_binary_node(NODE_BINARY_OP, "==", $1, $3); free($2); }
-    | expr OP_NEQ expr    { $$ = create_binary_node(NODE_BINARY_OP, "!=", $1, $3); free($2); }
-    | expr OP_LE expr     { $$ = create_binary_node(NODE_BINARY_OP, "<=", $1, $3); free($2); }
-    | expr OP_GE expr     { $$ = create_binary_node(NODE_BINARY_OP, ">=", $1, $3); free($2); }
-    | expr OP_LT expr     { $$ = create_binary_node(NODE_BINARY_OP, "<",  $1, $3); free($2); }
-    | expr OP_GT expr     { $$ = create_binary_node(NODE_BINARY_OP, ">",  $1, $3); free($2); }
-    | expr OP_AND expr    { $$ = create_binary_node(NODE_BINARY_OP, "&&", $1, $3); free($2); }
-    | expr OP_OR expr     { $$ = create_binary_node(NODE_BINARY_OP, "||", $1, $3); free($2); }
+    | expr OP_EQ expr      { $$ = create_binary_node(NODE_BINARY_OP, "==", $1, $3); free($2); }
+    | expr OP_NEQ expr     { $$ = create_binary_node(NODE_BINARY_OP, "!=", $1, $3); free($2); }
+    | expr OP_LE expr      { $$ = create_binary_node(NODE_BINARY_OP, "<=", $1, $3); free($2); }
+    | expr OP_GE expr      { $$ = create_binary_node(NODE_BINARY_OP, ">=", $1, $3); free($2); }
+    | expr OP_LT expr      { $$ = create_binary_node(NODE_BINARY_OP, "<",  $1, $3); free($2); }
+    | expr OP_GT expr      { $$ = create_binary_node(NODE_BINARY_OP, ">",  $1, $3); free($2); }
+    | expr OP_AND expr     { $$ = create_binary_node(NODE_BINARY_OP, "&&", $1, $3); free($2); }
+    | expr OP_OR expr      { $$ = create_binary_node(NODE_BINARY_OP, "||", $1, $3); free($2); }
+    | expr OP_BIT_AND expr { $$ = create_binary_node(NODE_BINARY_OP, "&", $1, $3 ); free($2); }
+    | expr OP_BIT_OR expr  { $$ = create_binary_node(NODE_BINARY_OP, "|", $1, $3); free($2); }
+    | expr OP_BIT_XOR expr { $$ = create_binary_node(NODE_BINARY_OP, "^", $1, $3); free($2); }
+    | OP_BIT_NOT expr %prec UBITNOT { $$ = create_binary_node(NODE_UNARY_OP, "~", $2, NULL ); free($1); }
+    | expr OP_SHL expr    { $$ = create_binary_node(NODE_BINARY_OP, "<<", $1, $3); free($2); }
+    | expr OP_SHR expr    { $$ = create_binary_node(NODE_BINARY_OP, ">>", $1, $3); free($2); }
     | expr OP_PLUS expr   { $$ = create_binary_node(NODE_BINARY_OP, "+",  $1, $3); free($2); }
-    | expr OP_MINUS expr  { $$ = create_binary_node(NODE_BINARY_OP, "-",  $1, $3); free($2); }
+    | OP_MINUS expr %prec UMINUS { $$ = create_binary_node(NODE_UNARY_OP, "-", $2, NULL); free($1); }
     | expr OP_MUL expr    { $$ = create_binary_node(NODE_BINARY_OP, "*",  $1, $3); free($2); }
     | expr OP_DIV expr    { $$ = create_binary_node(NODE_BINARY_OP, "/",  $1, $3); free($2); }
     | expr OP_MOD expr    { $$ = create_binary_node(NODE_BINARY_OP, "%",  $1, $3); free($2); }
@@ -272,23 +308,67 @@ expr:
         add_child($$, $1);
         if ($3 != NULL) add_child($$, $3);
     }
-    | expr LBRACKET expr RBRACKET {
+    | expr LBRACKET exprList RBRACKET {
         $$ = create_node(NODE_INDEXER, NULL);
         add_child($$, $1);
         add_child($$, $3);
     }
     ;
 
+arrayCommas:
+    %empty {
+        $$ = 0;
+    }
+    | arrayCommas COMMA {
+        $$ = $1 + 1;
+    }
+    ;
+
+
 typeRef:
-    KW_BOOL   { $$ = create_node(NODE_LITERAL, "bool"); }
-    | KW_BYTE   { $$ = create_node(NODE_LITERAL, "byte"); }
-    | KW_INT    { $$ = create_node(NODE_LITERAL, "int"); }
-    | KW_UINT   { $$ = create_node(NODE_LITERAL, "uint"); }
-    | KW_LONG   { $$ = create_node(NODE_LITERAL, "long"); }
-    | KW_ULONG  { $$ = create_node(NODE_LITERAL, "ulong"); }
-    | KW_CHAR   { $$ = create_node(NODE_LITERAL, "char"); }
-    | KW_STRING { $$ = create_node(NODE_LITERAL, "string"); }
-    | IDENTIFIER { $$ = create_node(NODE_IDENTIFIER, $1); free($1); }
+    KW_BOOL {
+        $$ = create_node(NODE_LITERAL, "bool");
+    }
+    | KW_BYTE {
+        $$ = create_node(NODE_LITERAL, "byte");
+    }
+    | KW_INT {
+        $$ = create_node(NODE_LITERAL, "int");
+    }
+    | KW_UINT {
+        $$ = create_node(NODE_LITERAL, "uint");
+    }
+    | KW_LONG {
+        $$ = create_node(NODE_LITERAL, "long");
+    }
+    | KW_ULONG {
+        $$ = create_node(NODE_LITERAL, "ulong");
+    }
+    | KW_CHAR {
+        $$ = create_node(NODE_LITERAL, "char");
+    }
+    | KW_STRING {
+        $$ = create_node(NODE_LITERAL, "string");
+    }
+    | IDENTIFIER {
+        $$ = create_node(NODE_IDENTIFIER, $1);
+        free($1);
+    }
+    | typeRef LBRACKET arrayCommas RBRACKET {
+        char dimensions[32];
+
+        snprintf(
+            dimensions,
+            sizeof(dimensions),
+            "%d",
+            $3 + 1
+        );
+
+        $$ = create_node(NODE_ARRAY_TYPE, dimensions);
+
+        // El tipo base es hijo del arreglo
+        add_child($$, $1);
+    }
     ;
 
 %%

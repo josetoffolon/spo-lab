@@ -1,0 +1,26 @@
+int main() {
+
+    // Arreglo de una dimensión
+    int[] numeros;
+
+    // Arreglo de cadenas
+    string[] nombres;
+
+    // Arreglo bidimensional
+    int[,] matriz;
+
+    // Arreglo tridimensional
+    int[,,] cubo;
+
+    // Arreglo de arreglos
+    int[][] grupos;
+
+    // Arreglo de tipo personalizado
+    Persona[] pacientes;
+
+    // Acceso a una posición
+    numeros[0] = 100;
+
+    // Acceso al arreglo anidado
+    grupos[0][1] = 50;
+}

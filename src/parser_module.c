@@ -164,6 +164,7 @@ static void dot_print_node(ASTNode* node, FILE* out, int* counter) {
         case NODE_ARG_LIST:   fprintf(out, "  n%d [label=\"ARG_LIST\"];\n", my_id); break;
         case NODE_EXPR_LIST:  fprintf(out, "  n%d [label=\"EXPR_LIST\"];\n", my_id); break;
         case NODE_DECL_LIST:  fprintf(out, "  n%d [label=\"DECL_LIST\"];\n", my_id); break;
+        case NODE_ARRAY_TYPE: fprintf(out, "  n%d [label=\"ARRAY_TYPE [%sD]\"];\n", my_id, label); break;
         default:              fprintf(out, "  n%d [label=\"?\"];\n", my_id); break;
     }
 

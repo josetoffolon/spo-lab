@@ -1,0 +1,35 @@
+int main() {
+
+    int a = 12;
+    int b = 10;
+
+    // AND bit a bit
+    int resultadoAnd = a & b;
+
+    // OR bit a bit
+    int resultadoOr = a | b;
+
+    // XOR bit a bit
+    int resultadoXor = a ^ b;
+
+    // NOT bit a bit
+    int resultadoNot = ~a;
+
+    // Desplazamiento izquierdo
+    int izquierda = a << 2;
+
+    // Desplazamiento derecho
+    int derecha = b >> 1;
+
+    // Expresiones combinadas
+    int combinado = a & b | a ^ b;
+
+    // Precedencia aritmetica y bitwise
+    int complejo = a + b << 2;
+
+    // Operadores logicos y bitwise
+    bool condicion = (a & b) == 8 && true;
+
+    // Literales binarios
+    int mascara = 0b1100 & 0b1010;
+}
