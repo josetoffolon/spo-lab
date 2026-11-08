@@ -179,17 +179,24 @@ varDeclTail:
     /* vacío */ {
         $$ = create_node(NODE_DECL_LIST, NULL);
     }
+    
     | varDeclTail COMMA IDENTIFIER optVarAssign {
-        ASTNode* decl = create_node(NODE_IDENTIFIER, $3);
+        if (!append_variable_declaration($1, $3, $4)) {
+            free_ast($1);
+            free($3);
+            free_ast($4);
 
-        if ($4 != NULL) {
-            add_child(decl, $4);
+            yyerror(
+                scanner,
+                ctx,
+                "No se pudo agregar la variable"
+            );
+
+            YYABORT;
         }
 
-        add_child($1, decl);
-        $$ = $1;
-
-        free($3);
+    free($3);
+    $$ = $1;
     }
     ;
 
@@ -249,39 +256,32 @@ statement:
     | BREAK SEMICOLON { $$ = create_node(NODE_BREAK, NULL); }
     | expr SEMICOLON { $$ = $1; }
     | typeRef IDENTIFIER optVarAssign varDeclTail SEMICOLON {
-    $$ = create_node(NODE_VAR_DECL, NULL);
+    ASTNode* declaration = create_var_declaration(
+        $1, $2, $3, $4
+    );
 
-    // Tipo declarado
-    add_child($$, $1);
-
-    // Primera variable de la lista
-    ASTNode* first = create_node(NODE_IDENTIFIER, $2);
-
-    if ($3 != NULL) {
-        add_child(first, $3);
-    }
-
-    // Insertar primera variable al inicio de la lista
-    ASTNode* declarations = create_node(NODE_DECL_LIST, NULL);
-    add_child(declarations, first);
-
-    // Incorporar las variables adicionales
-    if ($4 != NULL) {
-        for (int i = 0; i < $4->child_count; i++) {
-            add_child(declarations, $4->children[i]);
-        }
-
-        // Transferimos la propiedad de los hijos.
-        // Evitamos que se liberen dos veces.
-        free($4->children);
-        $4->children = NULL;
-        $4->child_count = 0;
+    if (declaration == NULL) {
+        // La función conserva los argumentos al fallar.
+        // Esta reducción debe liberarlos explícitamente.
+        free_ast($1);
+        free($2);
+        free_ast($3);
         free_ast($4);
+
+        yyerror(
+            scanner,
+            ctx,
+            "No se pudo construir la declaracion"
+        );
+
+        YYABORT;
     }
 
-    add_child($$, declarations);
-
+    // La función ha adquirido todos los nodos AST.
+    // El texto del identificador sigue siendo nuestro.
     free($2);
+
+    $$ = declaration;
     }
     ;
 

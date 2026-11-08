@@ -242,3 +242,39 @@ fail:
 
     return NULL;
 }
+
+int append_variable_declaration(ASTNode* list, const char* name, ASTNode* initializer) {
+    if (list == NULL ||
+        list->type != NODE_DECL_LIST ||
+        name == NULL) {
+        return 0;
+    }
+
+    ASTNode* variable = create_node(
+        NODE_IDENTIFIER, (char*)name
+    );
+
+    if (variable == NULL) {
+        return 0;
+    }
+
+    if (initializer != NULL) {
+        if (!add_child(variable, initializer)) {
+            free_ast(variable);
+            return 0;
+        }
+    }
+
+    if (!add_child(list, variable)) {
+        // No liberar initializer, porque sigue
+        // perteneciendo al llamador.
+        if (initializer != NULL) {
+            variable->child_count = 0;
+        }
+
+        free_ast(variable);
+        return 0;
+    }
+
+    return 1;
+}

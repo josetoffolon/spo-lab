@@ -57,6 +57,18 @@ ASTNode* create_var_declaration(
     ASTNode* additional_declarations
 );
 
+/*
+ * Añade una variable a NODE_DECL_LIST.
+ * Éxito: list adquiere initializer.
+ * Fallo: list e initializer conservan su propiedad.
+ */
+int append_variable_declaration(
+    ASTNode* list,
+    const char* name,
+    ASTNode* initializer
+);
+
+
 
 // Funciones para crear nodos (evitan fugas de memoria)
 ASTNode* create_node(NodeType type, char* value);
