@@ -46,6 +46,7 @@ int yyget_lineno(void* scanner);
 %type <dimension_count> arrayCommas
 
 %destructor { free($$); } <str>
+%destructor { free_ast($$); } <node>
 
 
 
