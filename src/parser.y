@@ -45,6 +45,9 @@ int yyget_lineno(void* scanner);
 %type <node> source sourceItem funcDef funcSignature argList argDef statement statementList block expr typeRef exprList optVarAssign varDeclTail
 %type <dimension_count> arrayCommas
 
+%destructor { free($$); } <str>
+
+
 
 /* Precedencia de menor a mayor */
 
@@ -84,23 +87,28 @@ int yyget_lineno(void* scanner);
 %nonassoc IFX
 %nonassoc ELSE
 
-%start source
+%start input
 
 %%
 
+input:
+    source {
+        ctx->root = $1;
+    }
+    ;
+
+
+
 source:
-    /* vacío */ {
+    %empty {
         $$ = create_node(NODE_PROGRAM, NULL);
-        ctx->root = $$;
     }
     | source sourceItem {
-        if ($1 != NULL && $2 != NULL) {
-            add_child($1, $2);
-            $$ = $1;
-        } else {
-            $$ = $1;
+        $$ = $1;
+
+        if ($$ != NULL && $2 != NULL) {
+            add_child($$, $2);
         }
-        ctx->root = $$;
     }
     ;
 
@@ -157,8 +165,13 @@ argDef:
     ;
 
 optVarAssign:
-    /* vacío */ { $$ = NULL; }
-    | OP_ASSIGN expr { $$ = $2; }
+    %empty {
+        $$ = NULL;
+    }
+    | OP_ASSIGN expr {
+        free($1);
+        $$ = $2;
+    }
     ;
 
 varDeclTail:

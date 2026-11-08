@@ -25,15 +25,26 @@ ErrorList* error_list_create(void) {
     return list;
 }
 
-void error_list_add(ErrorList* list, int line, const char* message) {
-    if (list == NULL || message == NULL) return;
 
-    ParseError* err = (ParseError*)malloc(sizeof(ParseError));
-    if (err == NULL) return;
+void error_list_add(ErrorList* list, int line, const char* message) {
+    if (list == NULL || message == NULL) {
+        return;
+    }
+
+    ParseError* err = calloc(1, sizeof(ParseError));
+
+    if (err == NULL) {
+        return;
+    }
+
+    err->message = strdup(message);
+
+    if (err->message == NULL) {
+        free(err);
+        return;
+    }
 
     err->line = line;
-    err->message = strdup(message);
-    err->next = NULL;
 
     if (list->tail == NULL) {
         list->head = err;
@@ -42,6 +53,7 @@ void error_list_add(ErrorList* list, int line, const char* message) {
         list->tail->next = err;
         list->tail = err;
     }
+
     list->count++;
 }
 
@@ -100,14 +112,16 @@ ASTNode* parse_text(const char* text, ErrorList* errors) {
     yy_delete_buffer(buffer, scanner);
     yylex_destroy(scanner);
 
-    // 6. Si hubo error sintáctico, liberamos el AST parcial
-    if (result != 0) {
+    // 6. Comprobar el resultado del análisis
+    if (result != 0 || ctx.has_error || ctx.root == NULL) {
         if (ctx.root != NULL) {
             free_ast(ctx.root);
         }
+
         return NULL;
     }
 
+    // 7. Transferir la propiedad del AST al llamador
     return ctx.root;
 }
 
