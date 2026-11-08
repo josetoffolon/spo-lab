@@ -1,6 +1,8 @@
 #include "ast.h"
 #include <stdio.h>
 #include <string.h>
+#include <limits.h>
+#include <stdint.h>
 
 // Crea un nodo genérico. Duplica el valor para que el nodo sea dueño de su memoria.
 ASTNode* create_node(NodeType type, char* value) {
@@ -71,4 +73,59 @@ void free_ast(ASTNode* node) {
     free(node->children);
     free(node->value);
     free(node);
+}
+
+int move_children(ASTNode* destination, ASTNode* source) {
+    if (destination == NULL || source == NULL ||
+        destination == source) {
+        return 0;
+    }
+
+    if (destination->child_count < 0 ||
+        source->child_count < 0) {
+        return 0;
+    }
+
+    size_t dst_count = (size_t)destination->child_count;
+    size_t src_count = (size_t)source->child_count;
+
+    if (src_count == 0) {
+        return 1;
+    }
+
+    if (src_count > (size_t)INT_MAX - dst_count) {
+        return 0;
+    }
+
+    size_t total = dst_count + src_count;
+
+    if (total > SIZE_MAX / sizeof(ASTNode*)) {
+        return 0;
+    }
+
+    ASTNode** resized = realloc(
+        destination->children,
+        total * sizeof(ASTNode*)
+    );
+
+    if (resized == NULL) {
+        return 0;
+    }
+
+    destination->children = resized;
+
+    memcpy(
+        destination->children + dst_count,
+        source->children,
+        src_count * sizeof(ASTNode*)
+    );
+
+    destination->child_count = (int)total;
+
+    // La propiedad de todos los hijos pasa al destino.
+    free(source->children);
+    source->children = NULL;
+    source->child_count = 0;
+
+    return 1;
 }

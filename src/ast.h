@@ -36,6 +36,8 @@ typedef struct ASTNode {
     int child_count;
 } ASTNode;
 
+int move_children(ASTNode* destination, ASTNode* source);
+
 // Funciones para crear nodos (evitan fugas de memoria)
 ASTNode* create_node(NodeType type, char* value);
 ASTNode* create_binary_node(NodeType type, char* op, ASTNode* left, ASTNode* right);
