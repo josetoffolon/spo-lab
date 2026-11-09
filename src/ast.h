@@ -76,6 +76,11 @@ ASTNode* create_binary_node(NodeType type, char* op, ASTNode* left, ASTNode* rig
 int add_child(ASTNode* parent, ASTNode* child);
 void free_ast(ASTNode* node);
 
+ASTNode* create_list_node(
+    NodeType type,
+    ASTNode* first_child
+);
+
 #ifdef AST_TEST_FAULT_INJECTION
 void ast_test_fail_next_create(void);
 #endif

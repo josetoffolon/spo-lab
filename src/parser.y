@@ -317,74 +317,138 @@ statement:
     }
     ;
 
+
 expr:
     IDENTIFIER {
         $$ = create_node(NODE_IDENTIFIER, $1);
         free($1);
     }
-    | LITERAL_DEC { $$ = create_node(NODE_LITERAL, $1); free($1); }
-    | LITERAL_HEX { $$ = create_node(NODE_LITERAL, $1); free($1); }
-    | LITERAL_BITS { $$ = create_node(NODE_LITERAL, $1); free($1); }
-    | LITERAL_STR { $$ = create_node(NODE_LITERAL, $1); free($1); }
-    | LITERAL_CHAR { $$ = create_node(NODE_LITERAL, $1); free($1); }
-    | LITERAL_BOOL { $$ = create_node(NODE_LITERAL, $1); free($1); }
-    | expr OP_EQ expr      { $$ = create_binary_node(NODE_BINARY_OP, "==", $1, $3); free($2); }
-    | expr OP_NEQ expr     { $$ = create_binary_node(NODE_BINARY_OP, "!=", $1, $3); free($2); }
-    | expr OP_LE expr      { $$ = create_binary_node(NODE_BINARY_OP, "<=", $1, $3); free($2); }
-    | expr OP_GE expr      { $$ = create_binary_node(NODE_BINARY_OP, ">=", $1, $3); free($2); }
-    | expr OP_LT expr      { $$ = create_binary_node(NODE_BINARY_OP, "<",  $1, $3); free($2); }
-    | expr OP_GT expr      { $$ = create_binary_node(NODE_BINARY_OP, ">",  $1, $3); free($2); }
-    | expr OP_AND expr     { $$ = create_binary_node(NODE_BINARY_OP, "&&", $1, $3); free($2); }
-    | expr OP_OR expr      { $$ = create_binary_node(NODE_BINARY_OP, "||", $1, $3); free($2); }
-    | expr OP_BIT_AND expr { $$ = create_binary_node(NODE_BINARY_OP, "&", $1, $3 ); free($2); }
-    | expr OP_BIT_OR expr  { $$ = create_binary_node(NODE_BINARY_OP, "|", $1, $3); free($2); }
-    | expr OP_BIT_XOR expr { $$ = create_binary_node(NODE_BINARY_OP, "^", $1, $3); free($2); }
-    | OP_BIT_NOT expr %prec UBITNOT { $$ = create_binary_node(NODE_UNARY_OP, "~", $2, NULL ); free($1); }
-    | expr OP_SHL expr    { $$ = create_binary_node(NODE_BINARY_OP, "<<", $1, $3); free($2); }
-    | expr OP_SHR expr    { $$ = create_binary_node(NODE_BINARY_OP, ">>", $1, $3); free($2); }
-    | expr OP_PLUS expr {
-    ASTNode* result = create_binary_node(
-        NODE_BINARY_OP, "+", $1, $3
-    );
 
-    if (result == NULL) {
-        // El constructor no adquirió los operandos.
-        free_ast($1);
-        free($2);
-        free_ast($3);
-
-        yyerror(
-            scanner,
-            ctx,
-            "Error de memoria al crear una suma"
-        );
-
-        YYABORT;
+    | LITERAL_DEC {
+        $$ = create_node(NODE_LITERAL, $1);
+        free($1);
+    }
+    | LITERAL_HEX {
+        $$ = create_node(NODE_LITERAL, $1);
+        free($1);
+    }
+    | LITERAL_BITS {
+        $$ = create_node(NODE_LITERAL, $1);
+        free($1);
+    }
+    | LITERAL_STR {
+        $$ = create_node(NODE_LITERAL, $1);
+        free($1);
+    }
+    | LITERAL_CHAR {
+        $$ = create_node(NODE_LITERAL, $1);
+        free($1);
+    }
+    | LITERAL_BOOL {
+        $$ = create_node(NODE_LITERAL, $1);
+        free($1);
     }
 
-    // El nuevo nodo ahora posee ambos operandos.
-    free($2);
-    $$ = result;
-}
-    | OP_MINUS expr %prec UMINUS { $$ = create_binary_node(NODE_UNARY_OP, "-", $2, NULL); free($1); }
-    | expr OP_MUL expr    { $$ = create_binary_node(NODE_BINARY_OP, "*",  $1, $3); free($2); }
-    | expr OP_DIV expr    { $$ = create_binary_node(NODE_BINARY_OP, "/",  $1, $3); free($2); }
-    | expr OP_MOD expr    { $$ = create_binary_node(NODE_BINARY_OP, "%",  $1, $3); free($2); }
-    | expr OP_ASSIGN expr { $$ = create_binary_node(NODE_BINARY_OP, "=", $1, $3); free($2); }
-    | OP_NOT expr         { $$ = create_binary_node(NODE_UNARY_OP, "!", $2, NULL); free($1); }
-    | expr OP_MINUS expr  { $$ = create_binary_node(NODE_BINARY_OP, "-", $1, $3); free($2); }
-    | LPAREN expr RPAREN  { $$ = $2; }
+    /* Comparaciones */
+    | expr OP_EQ expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_NEQ expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_LT expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_GT expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_LE expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_GE expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+
+    /* Lógicos */
+    | expr OP_AND expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_OR expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+
+    /* Bit a bit */
+    | expr OP_BIT_AND expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_BIT_OR expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_BIT_XOR expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_SHL expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_SHR expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+
+    /* Aritméticos */
+    | expr OP_PLUS expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_MINUS expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_MUL expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_DIV expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+    | expr OP_MOD expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+
+    /* Asignación */
+    | expr OP_ASSIGN expr {
+        AST_BUILD_BINARY($$, $1, $2, $3);
+    }
+
+    /* Unarios */
+    | OP_MINUS expr %prec UMINUS {
+        AST_BUILD_UNARY($$, $1, $2);
+    }
+    | OP_NOT expr {
+        AST_BUILD_UNARY($$, $1, $2);
+    }
+    | OP_BIT_NOT expr %prec UBITNOT {
+        AST_BUILD_UNARY($$, $1, $2);
+    }
+
+    /* Paréntesis */
+    | LPAREN expr RPAREN {
+        $$ = $2;
+    }
+
+    /* Llamadas */
     | expr LPAREN exprList RPAREN {
         $$ = create_node(NODE_CALL, NULL);
         add_child($$, $1);
-        if ($3 != NULL) add_child($$, $3);
+        if ($3 != NULL) {
+            add_child($$, $3);
+        }
     }
+
+    /* Indexación */
     | expr LBRACKET exprList RBRACKET {
         $$ = create_node(NODE_INDEXER, NULL);
         add_child($$, $1);
         add_child($$, $3);
     }
     ;
+
 
 arrayCommas:
     %empty {

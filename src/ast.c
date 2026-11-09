@@ -168,6 +168,26 @@ int move_children(ASTNode* destination, ASTNode* source) {
     return 1;
 }
 
+ASTNode* create_list_node(
+    NodeType type,
+    ASTNode* first_child
+) {
+    ASTNode* list = create_node(type, NULL);
+
+    if (list == NULL) {
+        return NULL;
+    }
+
+    if (first_child != NULL) {
+        if (!add_child(list, first_child)) {
+            free_ast(list);
+            return NULL;
+        }
+    }
+
+    return list;
+}
+
 ASTNode* create_var_declaration(
     ASTNode* type,
     const char* first_name,

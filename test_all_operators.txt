@@ -1,0 +1,31 @@
+int main() {
+    int a = 12;
+    int b = 5;
+
+    int suma = a + b;
+    int resta = a - b;
+    int producto = a * b;
+    int division = a / b;
+    int modulo = a % b;
+
+    int andBits = a & b;
+    int orBits = a | b;
+    int xorBits = a ^ b;
+    int negBits = ~a;
+    int izquierda = a << 2;
+    int derecha = a >> 1;
+
+    bool igual = a == b;
+    bool distinto = a != b;
+    bool menor = a < b;
+    bool mayor = a > b;
+    bool menorIgual = a <= b;
+    bool mayorIgual = a >= b;
+
+    bool logico = a > 0 && b < 10;
+    bool alternativa = a == 0 || b != 0;
+    bool negacion = !(a == b);
+
+    int negativo = -a;
+    a = a + b;
+}
