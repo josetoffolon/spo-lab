@@ -132,16 +132,29 @@ input:
 
 
 
+
 source:
     %empty {
         $$ = create_node(NODE_PROGRAM, NULL);
-    }
-    | source sourceItem {
-        $$ = $1;
 
-        if ($$ != NULL && $2 != NULL) {
-            add_child($$, $2);
+        if ($$ == NULL) {
+            yyerror(scanner, ctx,
+                "Error de memoria al crear programa");
+            YYABORT;
         }
+    }
+
+    | source sourceItem {
+        if (!add_child($1, $2)) {
+            free_ast($1);
+            free_ast($2);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al agregar funcion al programa");
+            YYABORT;
+        }
+
+        $$ = $1;
     }
     ;
 
@@ -256,15 +269,51 @@ argList:
     }
     ;
 
+
 argDef:
     IDENTIFIER {
-        $$ = create_node(NODE_IDENTIFIER, $1);
+        ASTNode* argument = create_node(
+            NODE_IDENTIFIER, $1
+        );
+
+        if (argument == NULL) {
+            free($1);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear argumento");
+            YYABORT;
+        }
+
         free($1);
+        $$ = argument;
     }
+
     | typeRef IDENTIFIER {
-        $$ = create_node(NODE_IDENTIFIER, $2);
-        if ($1 != NULL) add_child($$, $1);
+        ASTNode* argument = create_node(
+            NODE_IDENTIFIER, $2
+        );
+
+        if (argument == NULL) {
+            free_ast($1);
+            free($2);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear argumento tipado");
+            YYABORT;
+        }
+
+        if (!add_child(argument, $1)) {
+            free_ast(argument);
+            free_ast($1);
+            free($2);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al agregar tipo al argumento");
+            YYABORT;
+        }
+
         free($2);
+        $$ = argument;
     }
     ;
 
@@ -366,17 +415,34 @@ statementList:
         $$ = block;
     }
 
+    
     | statementList statement {
+
+        #ifdef AST_TEST_FAULT_INJECTION
+            /*
+            * Prueba controlada: provocar un fallo
+            * justo antes de agregar una instrucción.
+            */
+            if (getenv("AST_TEST_FAIL_STATEMENT_ADD") != NULL) {
+                ast_test_fail_next_add_child();
+            }
+        #endif
+
         if (!add_child($1, $2)) {
             free_ast($1);
             free_ast($2);
 
-            yyerror(scanner, ctx,
-                "Error de memoria al agregar instruccion");
+            yyerror(
+                scanner,
+                ctx,
+                "Error de memoria al agregar instruccion"
+            );
+
             YYABORT;
         }
 
-        $$ = $1;
+    $$ = $1;
+
     }
     ;
 

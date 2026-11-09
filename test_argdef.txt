@@ -1,0 +1,12 @@
+
+int sumar(int a, int b) {
+    int resultado = a + b;
+}
+
+procesar(x, y) {
+    int z = x + y;
+}
+
+int registrar(string nombre, bool activo, int[] valores) {
+    int cantidad = 1;
+}
