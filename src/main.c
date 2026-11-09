@@ -49,6 +49,16 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+
+    #ifdef AST_TEST_FAULT_INJECTION
+    const char* inject = getenv("AST_TEST_FAIL_PLUS");
+
+    if (inject != NULL && strcmp(inject, "1") == 0) {
+        ast_test_fail_next_plus();
+    }
+    #endif
+
+
     // 3. Analizar el texto
     ASTNode* ast = parse_text(source, errors);
 

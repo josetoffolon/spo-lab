@@ -4,8 +4,35 @@
 #include <limits.h>
 #include <stdint.h>
 
+
+
+#ifdef AST_TEST_FAULT_INJECTION
+static int fail_next_create = 0;
+
+void ast_test_fail_next_create(void) {
+    fail_next_create = 1;
+}
+#endif
+
+#ifdef AST_TEST_FAULT_INJECTION
+    static int fail_next_plus = 0;
+
+    void ast_test_fail_next_plus(void) {
+        fail_next_plus = 1;
+    }
+#endif
+
+
 // Crea un nodo genérico. Duplica el valor para que el nodo sea dueño de su memoria.
 ASTNode* create_node(NodeType type, char* value) {
+    #ifdef AST_TEST_FAULT_INJECTION
+        if (fail_next_create) {
+            fail_next_create = 0;
+            return NULL;
+        }
+    #endif
+
+
     ASTNode* node = calloc(1, sizeof(ASTNode));
 
     if (node == NULL) {
@@ -29,6 +56,17 @@ ASTNode* create_node(NodeType type, char* value) {
 
 // Crea un nodo binario (ej. una operación a + b)
 ASTNode* create_binary_node(NodeType type, char* op, ASTNode* left, ASTNode* right) {
+    #ifdef AST_TEST_FAULT_INJECTION
+        if (fail_next_plus &&
+            type == NODE_BINARY_OP &&
+            op != NULL &&
+            strcmp(op, "+") == 0) {
+
+            fail_next_plus = 0;
+            return NULL;
+        }
+    #endif
+
     ASTNode* node = create_node(type, op);
     if (node == NULL) return NULL;
     node->left = left;

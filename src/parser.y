@@ -5,6 +5,38 @@
 #include "ast.h"
 #include "parser_module.h"
 int yyget_lineno(void* scanner);
+
+#define AST_BUILD_BINARY(OUT, LEFT, TOKEN, RIGHT) do { \
+    ASTNode* ast_result = create_binary_node( \
+        NODE_BINARY_OP, (TOKEN), (LEFT), (RIGHT) \
+    ); \
+    if (ast_result == NULL) { \
+        free_ast(LEFT); \
+        free(TOKEN); \
+        free_ast(RIGHT); \
+        yyerror(scanner, ctx, \
+            "Error de memoria al crear expresion binaria"); \
+        YYABORT; \
+    } \
+    free(TOKEN); \
+    (OUT) = ast_result; \
+} while (0)
+
+#define AST_BUILD_UNARY(OUT, TOKEN, OPERAND) do { \
+    ASTNode* ast_result = create_binary_node( \
+        NODE_UNARY_OP, (TOKEN), (OPERAND), NULL \
+    ); \
+    if (ast_result == NULL) { \
+        free(TOKEN); \
+        free_ast(OPERAND); \
+        yyerror(scanner, ctx, \
+            "Error de memoria al crear expresion unaria"); \
+        YYABORT; \
+    } \
+    free(TOKEN); \
+    (OUT) = ast_result; \
+} while (0)
+
 %}
 
 %code requires {
@@ -310,7 +342,30 @@ expr:
     | OP_BIT_NOT expr %prec UBITNOT { $$ = create_binary_node(NODE_UNARY_OP, "~", $2, NULL ); free($1); }
     | expr OP_SHL expr    { $$ = create_binary_node(NODE_BINARY_OP, "<<", $1, $3); free($2); }
     | expr OP_SHR expr    { $$ = create_binary_node(NODE_BINARY_OP, ">>", $1, $3); free($2); }
-    | expr OP_PLUS expr   { $$ = create_binary_node(NODE_BINARY_OP, "+",  $1, $3); free($2); }
+    | expr OP_PLUS expr {
+    ASTNode* result = create_binary_node(
+        NODE_BINARY_OP, "+", $1, $3
+    );
+
+    if (result == NULL) {
+        // El constructor no adquirió los operandos.
+        free_ast($1);
+        free($2);
+        free_ast($3);
+
+        yyerror(
+            scanner,
+            ctx,
+            "Error de memoria al crear una suma"
+        );
+
+        YYABORT;
+    }
+
+    // El nuevo nodo ahora posee ambos operandos.
+    free($2);
+    $$ = result;
+}
     | OP_MINUS expr %prec UMINUS { $$ = create_binary_node(NODE_UNARY_OP, "-", $2, NULL); free($1); }
     | expr OP_MUL expr    { $$ = create_binary_node(NODE_BINARY_OP, "*",  $1, $3); free($2); }
     | expr OP_DIV expr    { $$ = create_binary_node(NODE_BINARY_OP, "/",  $1, $3); free($2); }
