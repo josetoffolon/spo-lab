@@ -68,6 +68,35 @@ int append_variable_declaration(
     ASTNode* initializer
 );
 
+/*
+ * Éxito: adquiere return_type y args.
+ * Fallo: conserva la propiedad de ambos.
+ * name es prestado y se copia.
+ */
+ASTNode* create_function_signature(
+    const char* name,
+    ASTNode* return_type,
+    ASTNode* args
+);
+
+/*
+ * Construye un nodo de estructura de control.
+ *
+ * Éxito:
+ *   Adquiere la propiedad de first, second y third.
+ *
+ * Fallo:
+ *   Conserva la propiedad de los argumentos.
+ *
+ * third puede ser NULL.
+ */
+ASTNode* create_control_node(
+    NodeType type,
+    ASTNode* first,
+    ASTNode* second,
+    ASTNode* third
+);
+
 
 
 // Funciones para crear nodos (evitan fugas de memoria)
@@ -88,6 +117,10 @@ void ast_test_fail_next_create(void);
 
 #ifdef AST_TEST_FAULT_INJECTION
 void ast_test_fail_next_plus(void);
+#endif
+
+#ifdef AST_TEST_FAULT_INJECTION
+void ast_test_fail_next_add_child(void);
 #endif
 
 

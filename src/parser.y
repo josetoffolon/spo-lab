@@ -151,37 +151,108 @@ sourceItem:
 
 funcDef:
     funcSignature block {
+        if (!add_child($1, $2)) {
+            free_ast($1);
+            free_ast($2);
+
+            yyerror(
+                scanner,
+                ctx,
+                "Error de memoria al agregar bloque a funcion"
+            );
+
+            YYABORT;
+        }
+
         $$ = $1;
-        add_child($$, $2);
     }
-    | funcSignature SEMICOLON { $$ = $1; }
+
+    | funcSignature SEMICOLON {
+        $$ = $1;
+    }
     ;
 
 funcSignature:
     IDENTIFIER LPAREN argList RPAREN {
-        $$ = create_node(NODE_FUNC_DEF, $1);
+        ASTNode* function = create_function_signature(
+            $1, NULL, $3
+        );
+
+        if (function == NULL) {
+            free($1);
+            free_ast($3);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear firma de funcion");
+            YYABORT;
+        }
+
         free($1);
-        if ($3 != NULL) add_child($$, $3);
+        $$ = function;
     }
+
     | typeRef IDENTIFIER LPAREN argList RPAREN {
-        $$ = create_node(NODE_FUNC_DEF, $2);
-        if ($1 != NULL) add_child($$, $1);
+        ASTNode* function = create_function_signature(
+            $2, $1, $4
+        );
+
+        if (function == NULL) {
+            free_ast($1);
+            free($2);
+            free_ast($4);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear firma de funcion");
+            YYABORT;
+        }
+
         free($2);
-        if ($4 != NULL) add_child($$, $4);
+        $$ = function;
     }
     ;
 
 argList:
-    /* vacío */ {
-        $$ = create_node(NODE_ARG_LIST, NULL);
+    %empty {
+        ASTNode* list = create_list_node(
+            NODE_ARG_LIST, NULL
+        );
+
+        if (list == NULL) {
+            yyerror(scanner, ctx,
+                "Error de memoria al crear lista de argumentos");
+            YYABORT;
+        }
+
+        $$ = list;
     }
+
     | argDef {
-        $$ = create_node(NODE_ARG_LIST, NULL);
-        add_child($$, $1);
+        ASTNode* list = create_list_node(
+            NODE_ARG_LIST, $1
+        );
+
+        if (list == NULL) {
+            free_ast($1);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear lista de argumentos");
+            YYABORT;
+        }
+
+        $$ = list;
     }
+
     | argList COMMA argDef {
+        if (!add_child($1, $3)) {
+            free_ast($1);
+            free_ast($3);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al agregar argumento");
+            YYABORT;
+        }
+
         $$ = $1;
-        add_child($$, $3);
     }
     ;
 
@@ -279,39 +350,103 @@ block:
     ;
 
 statementList:
-    statement { 
-        $$ = create_node(NODE_BLOCK, NULL); 
-        add_child($$, $1); 
+    statement {
+        ASTNode* block = create_list_node(
+            NODE_BLOCK, $1
+        );
+
+        if (block == NULL) {
+            free_ast($1);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear bloque");
+            YYABORT;
+        }
+
+        $$ = block;
     }
-    | statementList statement { 
-        add_child($1, $2); 
-        $$ = $1; 
+
+    | statementList statement {
+        if (!add_child($1, $2)) {
+            free_ast($1);
+            free_ast($2);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al agregar instruccion");
+            YYABORT;
+        }
+
+        $$ = $1;
     }
     ;
 
 statement:
     block { $$ = $1; }
     | IF LPAREN expr RPAREN statement %prec IFX {
-        $$ = create_node(NODE_IF, NULL);
-        add_child($$, $3);
-        add_child($$, $5);
+        ASTNode* node = create_control_node(
+            NODE_IF, $3, $5, NULL
+        );
+
+        if (node == NULL) {
+            free_ast($3);
+            free_ast($5);
+            yyerror(scanner, ctx,
+                "Error de memoria al crear if");
+            YYABORT;
+        }
+
+        $$ = node;
     }
+
     | IF LPAREN expr RPAREN statement ELSE statement {
-        $$ = create_node(NODE_IF, NULL);
-        add_child($$, $3);
-        add_child($$, $5);
-        add_child($$, $7);
+        ASTNode* node = create_control_node(
+            NODE_IF, $3, $5, $7
+        );
+
+        if (node == NULL) {
+            free_ast($3);
+            free_ast($5);
+            free_ast($7);
+            yyerror(scanner, ctx,
+                "Error de memoria al crear if-else");
+            YYABORT;
+        }
+
+        $$ = node;
     }
+
     | WHILE LPAREN expr RPAREN statement {
-        $$ = create_node(NODE_WHILE, NULL);
-        add_child($$, $3);
-        add_child($$, $5);
+        ASTNode* node = create_control_node(
+            NODE_WHILE, $3, $5, NULL
+        );
+
+        if (node == NULL) {
+            free_ast($3);
+            free_ast($5);
+            yyerror(scanner, ctx,
+                "Error de memoria al crear while");
+            YYABORT;
+        }
+
+        $$ = node;
     }
+
     | DO block WHILE LPAREN expr RPAREN SEMICOLON {
-        $$ = create_node(NODE_DO_WHILE, NULL);
-        add_child($$, $2);
-        add_child($$, $5);
+        ASTNode* node = create_control_node(
+            NODE_DO_WHILE, $2, $5, NULL
+        );
+
+        if (node == NULL) {
+            free_ast($2);
+            free_ast($5);
+            yyerror(scanner, ctx,
+                "Error de memoria al crear do-while");
+            YYABORT;
+        }
+
+        $$ = node;
     }
+
     | BREAK SEMICOLON { $$ = create_node(NODE_BREAK, NULL); }
     | expr SEMICOLON { $$ = $1; }
     | typeRef IDENTIFIER optVarAssign varDeclTail SEMICOLON {

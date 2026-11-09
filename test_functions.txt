@@ -1,0 +1,11 @@
+
+int sumar(int a, int b) {
+    int resultado = a + b;
+}
+
+int procesar(int x);
+
+main() {
+    int numero = 10;
+    int resultado = sumar(numero, 20);
+}

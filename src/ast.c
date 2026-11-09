@@ -22,6 +22,14 @@ void ast_test_fail_next_create(void) {
     }
 #endif
 
+#ifdef AST_TEST_FAULT_INJECTION
+static int fail_next_add_child = 0;
+
+void ast_test_fail_next_add_child(void) {
+    fail_next_add_child = 1;
+}
+#endif
+
 
 // Crea un nodo genérico. Duplica el valor para que el nodo sea dueño de su memoria.
 ASTNode* create_node(NodeType type, char* value) {
@@ -79,6 +87,13 @@ int add_child(ASTNode* parent, ASTNode* child) {
     if (parent == NULL || child == NULL) {
         return 0;
     }
+
+    #ifdef AST_TEST_FAULT_INJECTION
+        if (fail_next_add_child) {
+            fail_next_add_child = 0;
+            return 0;
+        }
+    #endif
 
     ASTNode** new_children = realloc(
         parent->children,
@@ -167,6 +182,100 @@ int move_children(ASTNode* destination, ASTNode* source) {
 
     return 1;
 }
+
+ASTNode* create_control_node(
+    NodeType type,
+    ASTNode* first,
+    ASTNode* second,
+    ASTNode* third
+) {
+    if (type != NODE_IF &&
+        type != NODE_WHILE &&
+        type != NODE_DO_WHILE) {
+        return NULL;
+    }
+
+    if (first == NULL || second == NULL) {
+        return NULL;
+    }
+
+    ASTNode* node = create_node(type, NULL);
+
+    if (node == NULL) {
+        return NULL;
+    }
+
+    size_t count = third != NULL ? 3 : 2;
+
+    node->children = malloc(
+        count * sizeof(ASTNode*)
+    );
+
+    if (node->children == NULL) {
+        free_ast(node);
+        return NULL;
+    }
+
+    // A partir de aquí no hay nuevas reservas.
+    node->children[0] = first;
+    node->children[1] = second;
+
+    if (third != NULL) {
+        node->children[2] = third;
+    }
+
+    node->child_count = (int)count;
+
+    return node;
+}
+
+ASTNode* create_function_signature(
+    const char* name,
+    ASTNode* return_type,
+    ASTNode* args
+) {
+    if (name == NULL) {
+        return NULL;
+    }
+
+    ASTNode* function = create_node(
+        NODE_FUNC_DEF, (char*)name
+    );
+
+    if (function == NULL) {
+        return NULL;
+    }
+
+    int child_count = 0;
+
+    if (return_type != NULL) child_count++;
+    if (args != NULL) child_count++;
+
+    if (child_count > 0) {
+        function->children = malloc(
+            (size_t)child_count * sizeof(ASTNode*)
+        );
+
+        if (function->children == NULL) {
+            free_ast(function);
+            return NULL;
+        }
+    }
+
+    // Transferir propiedad después de reservar memoria.
+    if (return_type != NULL) {
+        function->children[function->child_count++] =
+            return_type;
+    }
+
+    if (args != NULL) {
+        function->children[function->child_count++] =
+            args;
+    }
+
+    return function;
+}
+
 
 ASTNode* create_list_node(
     NodeType type,
