@@ -233,16 +233,43 @@ varDeclTail:
     ;
 
 exprList:
-    /* vacío */ {
-        $$ = create_node(NODE_EXPR_LIST, NULL);
+    %empty {
+        $$ = create_list_node(NODE_EXPR_LIST, NULL);
+
+        if ($$ == NULL) {
+            yyerror(scanner, ctx,
+                "Error de memoria al crear lista de expresiones");
+            YYABORT;
+        }
     }
+
     | expr {
-        $$ = create_node(NODE_EXPR_LIST, NULL);
-        add_child($$, $1);
+        ASTNode* list = create_list_node(
+            NODE_EXPR_LIST, $1
+        );
+
+        if (list == NULL) {
+            free_ast($1);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear lista de expresiones");
+            YYABORT;
+        }
+
+        $$ = list;
     }
+
     | exprList COMMA expr {
+        if (!add_child($1, $3)) {
+            free_ast($1);
+            free_ast($3);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al agregar expresion");
+            YYABORT;
+        }
+
         $$ = $1;
-        add_child($$, $3);
     }
     ;
 
