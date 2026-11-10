@@ -112,6 +112,45 @@ int add_child(ASTNode* parent, ASTNode* child) {
 }
 
 
+ASTNode* create_postfix_node(
+    NodeType type,
+    ASTNode* first,
+    ASTNode* second
+) {
+    if (type != NODE_CALL &&
+        type != NODE_INDEXER) {
+        return NULL;
+    }
+
+    if (first == NULL || second == NULL) {
+        return NULL;
+    }
+
+    ASTNode* node = create_node(type, NULL);
+
+    if (node == NULL) {
+        return NULL;
+    }
+
+    node->children = malloc(
+        2 * sizeof(ASTNode*)
+    );
+
+    if (node->children == NULL) {
+        free_ast(node);
+        return NULL;
+    }
+
+    // No quedan reservas pendientes.
+    // Transferimos la propiedad de ambos hijos.
+    node->children[0] = first;
+    node->children[1] = second;
+    node->child_count = 2;
+
+    return node;
+}
+
+
 // Libera recursivamente todo el árbol (evita fugas de memoria)
 void free_ast(ASTNode* node) {
     if (node == NULL) return;

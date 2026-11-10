@@ -98,6 +98,18 @@ ASTNode* create_control_node(
 );
 
 
+/*
+ * Construye una llamada o un indexador.
+ *
+ * Exito: adquiere first y second.
+ * Fallo: conserva la propiedad de ambos.
+ */
+ASTNode* create_postfix_node(
+    NodeType type,
+    ASTNode* first,
+    ASTNode* second
+);
+
 
 // Funciones para crear nodos (evitan fugas de memoria)
 ASTNode* create_node(NodeType type, char* value);

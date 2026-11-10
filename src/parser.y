@@ -37,6 +37,33 @@ int yyget_lineno(void* scanner);
     (OUT) = ast_result; \
 } while (0)
 
+
+#define AST_BUILD_TYPE(OUT, TYPE_NAME) do { \
+    ASTNode* type_node = create_node( \
+        NODE_LITERAL, (TYPE_NAME) \
+    ); \
+    if (type_node == NULL) { \
+        yyerror(scanner, ctx, \
+            "Error de memoria al crear tipo"); \
+        YYABORT; \
+    } \
+    (OUT) = type_node; \
+} while (0)
+
+#define AST_BUILD_VALUE(OUT, NODE_KIND, TOKEN) do { \
+    ASTNode* value_node = create_node( \
+        (NODE_KIND), (TOKEN) \
+    ); \
+    if (value_node == NULL) { \
+        free(TOKEN); \
+        yyerror(scanner, ctx, \
+            "Error de memoria al crear valor"); \
+        YYABORT; \
+    } \
+    free(TOKEN); \
+    (OUT) = value_node; \
+} while (0)
+
 %}
 
 %code requires {
@@ -129,8 +156,6 @@ input:
         ctx->root = $1;
     }
     ;
-
-
 
 
 source:
@@ -327,9 +352,19 @@ optVarAssign:
     }
     ;
 
+
 varDeclTail:
-    /* vacío */ {
+    %empty {
         $$ = create_node(NODE_DECL_LIST, NULL);
+
+        if ($$ == NULL) {
+            yyerror(
+                scanner,
+                ctx,
+                "Error de memoria al crear lista de declaraciones"
+            );
+            YYABORT;
+        }
     }
     
     | varDeclTail COMMA IDENTIFIER optVarAssign {
@@ -393,10 +428,26 @@ exprList:
     }
     ;
 
+
 block:
-    LBRACE RBRACE { $$ = create_node(NODE_BLOCK, NULL); }
-    | LBRACE statementList RBRACE { $$ = $2; }
+    LBRACE RBRACE {
+        $$ = create_node(NODE_BLOCK, NULL);
+
+        if ($$ == NULL) {
+            yyerror(
+                scanner,
+                ctx,
+                "Error de memoria al crear bloque vacio"
+            );
+            YYABORT;
+        }
+    }
+
+    | LBRACE statementList RBRACE {
+        $$ = $2;
+    }
     ;
+
 
 statementList:
     statement {
@@ -513,7 +564,18 @@ statement:
         $$ = node;
     }
 
-    | BREAK SEMICOLON { $$ = create_node(NODE_BREAK, NULL); }
+    | BREAK SEMICOLON {
+        $$ = create_node(NODE_BREAK, NULL);
+
+        if ($$ == NULL) {
+            yyerror(
+                scanner,
+                ctx,
+                "Error de memoria al crear break"
+            );
+            YYABORT;
+        }
+    }
     | expr SEMICOLON { $$ = $1; }
     | typeRef IDENTIFIER optVarAssign varDeclTail SEMICOLON {
     ASTNode* declaration = create_var_declaration(
@@ -548,33 +610,25 @@ statement:
 
 expr:
     IDENTIFIER {
-        $$ = create_node(NODE_IDENTIFIER, $1);
-        free($1);
+        AST_BUILD_VALUE($$, NODE_IDENTIFIER, $1);
     }
-
     | LITERAL_DEC {
-        $$ = create_node(NODE_LITERAL, $1);
-        free($1);
+        AST_BUILD_VALUE($$, NODE_LITERAL, $1);
     }
     | LITERAL_HEX {
-        $$ = create_node(NODE_LITERAL, $1);
-        free($1);
+        AST_BUILD_VALUE($$, NODE_LITERAL, $1);
     }
     | LITERAL_BITS {
-        $$ = create_node(NODE_LITERAL, $1);
-        free($1);
+        AST_BUILD_VALUE($$, NODE_LITERAL, $1);
     }
     | LITERAL_STR {
-        $$ = create_node(NODE_LITERAL, $1);
-        free($1);
+        AST_BUILD_VALUE($$, NODE_LITERAL, $1);
     }
     | LITERAL_CHAR {
-        $$ = create_node(NODE_LITERAL, $1);
-        free($1);
+        AST_BUILD_VALUE($$, NODE_LITERAL, $1);
     }
     | LITERAL_BOOL {
-        $$ = create_node(NODE_LITERAL, $1);
-        free($1);
+        AST_BUILD_VALUE($$, NODE_LITERAL, $1);
     }
 
     /* Comparaciones */
@@ -660,20 +714,39 @@ expr:
         $$ = $2;
     }
 
-    /* Llamadas */
+    
     | expr LPAREN exprList RPAREN {
-        $$ = create_node(NODE_CALL, NULL);
-        add_child($$, $1);
-        if ($3 != NULL) {
-            add_child($$, $3);
+        ASTNode* node = create_postfix_node(
+            NODE_CALL, $1, $3
+        );
+
+        if (node == NULL) {
+            free_ast($1);
+            free_ast($3);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear llamada");
+            YYABORT;
         }
+
+        $$ = node;
     }
 
-    /* Indexación */
     | expr LBRACKET exprList RBRACKET {
-        $$ = create_node(NODE_INDEXER, NULL);
-        add_child($$, $1);
-        add_child($$, $3);
+        ASTNode* node = create_postfix_node(
+            NODE_INDEXER, $1, $3
+        );
+
+        if (node == NULL) {
+            free_ast($1);
+            free_ast($3);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear indexador");
+            YYABORT;
+        }
+
+        $$ = node;
     }
     ;
 
@@ -688,60 +761,98 @@ arrayCommas:
     ;
 
 
+
 typeRef:
     KW_BOOL {
-        $$ = create_node(NODE_LITERAL, "bool");
+        AST_BUILD_TYPE($$, "bool");
     }
     | KW_BYTE {
-        $$ = create_node(NODE_LITERAL, "byte");
+        AST_BUILD_TYPE($$, "byte");
     }
     | KW_INT {
-        $$ = create_node(NODE_LITERAL, "int");
+        AST_BUILD_TYPE($$, "int");
     }
     | KW_UINT {
-        $$ = create_node(NODE_LITERAL, "uint");
+        AST_BUILD_TYPE($$, "uint");
     }
     | KW_LONG {
-        $$ = create_node(NODE_LITERAL, "long");
+        AST_BUILD_TYPE($$, "long");
     }
     | KW_ULONG {
-        $$ = create_node(NODE_LITERAL, "ulong");
+        AST_BUILD_TYPE($$, "ulong");
     }
     | KW_CHAR {
-        $$ = create_node(NODE_LITERAL, "char");
+        AST_BUILD_TYPE($$, "char");
     }
     | KW_STRING {
-        $$ = create_node(NODE_LITERAL, "string");
+        AST_BUILD_TYPE($$, "string");
     }
+
     | IDENTIFIER {
-        $$ = create_node(NODE_IDENTIFIER, $1);
+        ASTNode* type_node = create_node(
+            NODE_IDENTIFIER, $1
+        );
+
+        if (type_node == NULL) {
+            free($1);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear tipo personalizado");
+            YYABORT;
+        }
+
         free($1);
+        $$ = type_node;
     }
+
     | typeRef LBRACKET arrayCommas RBRACKET {
         char dimensions[32];
 
-        snprintf(
+        int written = snprintf(
             dimensions,
             sizeof(dimensions),
             "%d",
             $3 + 1
         );
 
-        $$ = create_node(NODE_ARRAY_TYPE, dimensions);
+        if (written < 0 ||
+            (size_t)written >= sizeof(dimensions)) {
+            free_ast($1);
 
-        // El tipo base es hijo del arreglo
-        add_child($$, $1);
+            yyerror(scanner, ctx,
+                "Error al representar dimensiones");
+            YYABORT;
+        }
+
+        ASTNode* array_node = create_node(
+            NODE_ARRAY_TYPE, dimensions
+        );
+
+        if (array_node == NULL) {
+            free_ast($1);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al crear arreglo");
+            YYABORT;
+        }
+
+        if (!add_child(array_node, $1)) {
+            free_ast(array_node);
+            free_ast($1);
+
+            yyerror(scanner, ctx,
+                "Error de memoria al agregar tipo base");
+            YYABORT;
+        }
+
+        $$ = array_node;
     }
     ;
 
 %%
 
-void yyerror(
-    void* scanner,
-    ParseContext* ctx,
-    const char* message
-) {
-    if (ctx == NULL) {
+void yyerror(void* scanner, ParseContext* ctx, const char* message) {
+    if (ctx ->has_error) {
         return;
     }
 

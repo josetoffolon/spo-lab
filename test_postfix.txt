@@ -1,0 +1,14 @@
+
+int sumar(int a, int b) {
+    int resultado = a + b;
+}
+
+int main() {
+    int[] numeros;
+
+    int primero = numeros[0];
+    int segundo = numeros[1];
+
+    int resultado = sumar(primero, segundo);
+    int total = sumar(numeros[0], 20);
+}

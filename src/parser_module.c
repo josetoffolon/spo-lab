@@ -9,7 +9,7 @@
 typedef void* yyscan_t;
 
 /* Funciones generadas por Flex */
-int yylex_init(yyscan_t* scanner);
+int yylex_init_extra(ParseContext* user_defined, yyscan_t* scanner);
 int yylex_destroy(yyscan_t scanner);
 void* yy_scan_string(const char* str, yyscan_t scanner);
 void yy_delete_buffer(void* buffer, yyscan_t scanner);
@@ -83,7 +83,7 @@ ASTNode* parse_text(const char* text, ErrorList* errors) {
 
     // 2. Inicializamos el scanner reentrante de Flex
     yyscan_t scanner = NULL;
-    if (yylex_init(&scanner) != 0) {
+    if (yylex_init_extra(&ctx, &scanner) != 0) {
         error_list_add(errors, 0, "No se pudo inicializar el lexer");
         return NULL;
     }

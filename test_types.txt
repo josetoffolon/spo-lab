@@ -1,0 +1,15 @@
+
+int main() {
+    int numero;
+    bool activo;
+    string nombre;
+    char letra;
+    long grande;
+    uint positivo;
+
+    int[] numeros;
+    int[,] matriz;
+    Persona persona;
+    Persona[] personas;
+    Persona[,] registros;
+}
